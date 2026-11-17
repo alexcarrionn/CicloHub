@@ -1,0 +1,29 @@
+#!/bin/sh
+# Formatea con Prettier y corrige con ESLint los ficheros en staging antes de cada commit.
+#
+# Se llama a `node` con los binarios locales en vez de usar `npx`: en Windows,
+# los clientes de Git de los IDE (GitHub Desktop, VS Code…) ejecutan los hooks
+# con un shell mínimo en el que el script `npx` de Node (`#!/usr/bin/env bash`)
+# no se puede lanzar, y el commit falla con «npx: No such file or directory».
+
+PRETTIER=node_modules/prettier/bin/prettier.cjs
+ESLINT=node_modules/eslint/bin/eslint.js
+
+if [ ! -f "$PRETTIER" ] || [ ! -f "$ESLINT" ]; then
+  echo "Faltan las dependencias de desarrollo. Ejecuta 'npm ci' antes de hacer commit."
+  exit 1
+fi
+
+files=$(git diff --cached --name-only --diff-filter=ACMR)
+[ -z "$files" ] && exit 0
+
+echo "Formateando con Prettier..."
+echo "$files" | xargs node "$PRETTIER" --write --ignore-unknown || exit 1
+
+lintable=$(echo "$files" | grep -E '\.(ts|js)$')
+if [ -n "$lintable" ]; then
+  echo "Comprobando con ESLint..."
+  echo "$lintable" | xargs node "$ESLINT" --fix || exit 1
+fi
+
+echo "$files" | xargs git add
