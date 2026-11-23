@@ -19,6 +19,13 @@
     "forceConsistentCasingInFileNames": true,
     "noImplicitAny": false,
     "strictBindCallApply": false,
-    "noFallthroughCasesInSwitch": false
+    "noFallthroughCasesInSwitch": false,
+    "baseUrl": "./",
+    "paths": {
+      "@app/contratos": ["libs/contratos/src"],
+      "@app/contratos/*": ["libs/contratos/src/*"],
+      "@app/shared": ["libs/shared/src"],
+      "@app/shared/*": ["libs/shared/src/*"]
+    }
   }
 }

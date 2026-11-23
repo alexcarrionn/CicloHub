@@ -2,7 +2,7 @@ node_modules
 dist
 coverage
 docs
-test
+apps/*/test
 .git
 .github
 .githooks

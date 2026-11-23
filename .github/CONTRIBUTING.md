@@ -18,21 +18,23 @@
 Instalación de dependencias y primer arranque:
 
 ```bash
-npm ci              # instala exactamente lo que fija package-lock.json
-npm run start:dev   # arranca en modo desarrollo con recarga automática
+npm ci                          # instala exactamente lo que fija package-lock.json
+npm run start:dev               # arranca la pasarela (gateway) con recarga automática
+npm run start:dev -- prestamos  # arranca otra app del monorepo
 ```
 
-La API queda escuchando en `http://localhost:3000`. Comprueba que responde:
+Los microservicios se comunican por NATS, así que para arrancarlos en local necesitas un servidor NATS (`docker compose up nats`). La pasarela queda escuchando en `http://localhost:3000`. Comprueba que responde:
 
 ```bash
-curl http://localhost:3000/
-# Hello World!
+curl http://localhost:3000/salud
+# {"servicio":"gateway","estado":"ok"}
 ```
 
-También puedes levantarla en contenedor, que es como se ejecuta en producción:
+También puedes levantarlo todo en contenedores (pasarela, los cinco microservicios y NATS), que es como se ejecuta en producción:
 
 ```bash
 docker compose up --build
+curl http://localhost:3000/salud/servicios   # la pasarela pregunta por NATS a cada servicio
 ```
 
 ---
@@ -121,11 +123,11 @@ Los commits deben estar **firmados con el nombre de quien los realiza**. No se a
 
 ### 5.1. Arquitectura
 
-Respeta la estructura estándar de NestJS: el código vive en `src/`, organizado en **módulos**, y cada módulo agrupa sus controladores, servicios y tests unitarios.
+El repositorio es un **monorepo de NestJS**: cada microservicio es una app en `apps/<app>/` (`gateway`, `usuarios`, `estaciones-bici`, `prestamos`, `incidencias` y `estadisticas`) y el código compartido va en librerías en `libs/` (`@app/shared` con los patrones DDD y `@app/contratos` con los mensajes y eventos). Dentro de cada app el código se organiza en **módulos**, y cada módulo agrupa sus controladores, servicios y tests unitarios. Una app nunca importa código de otra: solo de las librerías.
 
 * **Los controladores solo hablan HTTP**: reciben la petición, delegan en un servicio y devuelven la respuesta.
 * **La lógica de negocio vive en los servicios** (`*.service.ts`), sin dependencias de HTTP.
-* Genera las piezas nuevas con la CLI de Nest (`npx nest generate module|controller|service <nombre>`) para mantener la estructura y los nombres homogéneos.
+* Genera las piezas nuevas con la CLI de Nest (`npx nest generate module|controller|service <nombre> --project <app>`) para mantener la estructura y los nombres homogéneos.
 
 ### 5.2. Pruebas
 
@@ -133,8 +135,8 @@ Toda contribución de código llega con tests. Sin excepciones.
 
 | Tipo | Dónde | Qué comprueba |
 |---|---|---|
-| **Unitarios** | `src/**/*.spec.ts`, junto al código que prueban | Servicios y controladores, de forma aislada. |
-| **e2e** | `test/*.e2e-spec.ts` | Que los endpoints responden lo esperado, con Supertest. |
+| **Unitarios** | `apps/**/*.spec.ts` y `libs/**/*.spec.ts`, junto al código que prueban | Servicios y controladores, de forma aislada. |
+| **e2e** | `apps/<app>/test/*.e2e-spec.ts` | Que los endpoints responden lo esperado, con Supertest. |
 
 ```bash
 npm test                # tests unitarios

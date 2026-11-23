@@ -1,6 +1,9 @@
 #!/bin/sh
-# Prueba de humo contra una instancia en marcha de la API (local o en
+# Prueba de humo contra una instancia en marcha de la pasarela (local o en
 # contenedor). Comprueba que los endpoints responden lo esperado.
+#
+# GET /salud/servicios no se comprueba aquí porque necesita NATS y los
+# microservicios en marcha (en la CI la pasarela arranca sola).
 #
 # Uso: sh scripts/comprobar-api.sh [URL_BASE]   (por defecto http://localhost:3000)
 # Necesita curl.
@@ -43,8 +46,8 @@ comprobar() {
 echo "Prueba de humo contra $BASE_URL"
 
 # Añade aquí una comprobación por cada endpoint nuevo.
-peticion GET /
-comprobar "GET / responde 200 con el saludo" 200 "Hello World!"
+peticion GET /salud
+comprobar "GET /salud responde 200" 200 '{"servicio":"gateway","estado":"ok"}'
 
 peticion GET /no-existe
 comprobar "una ruta desconocida devuelve 404" 404

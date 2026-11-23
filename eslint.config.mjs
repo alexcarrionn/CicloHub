@@ -72,4 +72,17 @@ export default tseslint.config(
       'class-methods-use-this': 'off',
     },
   },
+  {
+    // Airbnb solo considera ficheros de prueba los de `test/` en la raíz y
+    // los `*.spec.*`. En el monorepo de Nest las pruebas backend de cada app
+    // viven en `apps/<app>/test/`, y pueden usar dependencias de desarrollo
+    // (`@nestjs/testing`, `supertest`), igual que el resto de las pruebas.
+    files: ['apps/*/test/**/*.ts'],
+    rules: {
+      'import-x/no-extraneous-dependencies': [
+        'error',
+        { devDependencies: true },
+      ],
+    },
+  },
 );

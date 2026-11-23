@@ -1,5 +1,45 @@
+# Entorno local completo: la pasarela, los cinco microservicios y NATS.
+#   docker compose up --build
+# La pasarela queda en http://localhost:3000 (GET /salud y /salud/servicios).
+#
+# PostgreSQL y MongoDB se añadirán cuando cada servicio tenga su persistencia
+# (ver docs/dfs/decisiones/ y el PDF de tecnologías del proyecto).
+
+x-microservicio: &microservicio
+  restart: unless-stopped
+  environment:
+    NATS_URL: nats://nats:4222
+  depends_on:
+    nats:
+      condition: service_started
+
 services:
-  api:
-    build: .
-    ports: ['3000:3000']
+  nats:
+    image: nats:2.11-alpine
     restart: unless-stopped
+    ports: ['4222:4222']
+
+  gateway:
+    <<: *microservicio
+    build: { context: ., args: { APP: gateway } }
+    ports: ['3000:3000']
+
+  usuarios:
+    <<: *microservicio
+    build: { context: ., args: { APP: usuarios } }
+
+  estaciones-bici:
+    <<: *microservicio
+    build: { context: ., args: { APP: estaciones-bici } }
+
+  prestamos:
+    <<: *microservicio
+    build: { context: ., args: { APP: prestamos } }
+
+  incidencias:
+    <<: *microservicio
+    build: { context: ., args: { APP: incidencias } }
+
+  estadisticas:
+    <<: *microservicio
+    build: { context: ., args: { APP: estadisticas } }

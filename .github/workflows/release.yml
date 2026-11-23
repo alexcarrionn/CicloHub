@@ -10,9 +10,20 @@ permissions:
   packages: write
 
 jobs:
+  # Una imagen por app del monorepo: ghcr.io/<repo>/<app>
   publish:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        app:
+          - gateway
+          - usuarios
+          - estaciones-bici
+          - prestamos
+          - incidencias
+          - estadisticas
     steps:
       - uses: actions/checkout@v4
 
@@ -27,7 +38,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository }}
+          images: ghcr.io/${{ github.repository }}/${{ matrix.app }}
           tags: |
             type=sha,prefix=sha-
             type=semver,pattern={{version}}
@@ -40,5 +51,6 @@ jobs:
         with:
           context: .
           push: true
+          build-args: APP=${{ matrix.app }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

@@ -18,28 +18,30 @@
   "homepage": "https://github.com/alexcarrionn/CicloHub#readme",
   "scripts": {
     "prepare": "node -e \"require('fs').existsSync('.git') && require('child_process').execSync('git config core.hooksPath .githooks')\"",
-    "build": "nest build",
+    "build": "nest build --all",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
-    "start:prod": "node dist/main",
-    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\"",
-    "lint:fix": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
+    "start:prod": "node dist/apps/gateway/main",
+    "lint": "eslint \"{apps,libs}/**/*.ts\"",
+    "lint:fix": "eslint \"{apps,libs}/**/*.ts\" --fix",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:coverage": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "test:e2e": "jest --config ./jest-e2e.json",
     "test:api": "sh scripts/comprobar-api.sh",
     "docs": "typedoc"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
     "@nestjs/core": "^11.0.1",
+    "@nestjs/microservices": "^11.2.11",
     "@nestjs/platform-express": "^11.0.1",
+    "nats": "^2.29.3",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1"
   },
@@ -76,15 +78,25 @@
       "json",
       "ts"
     ],
-    "rootDir": "src",
+    "rootDir": ".",
     "testRegex": ".*\\.spec\\.ts$",
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"
     },
     "collectCoverageFrom": [
-      "**/*.(t|j)s"
+      "{apps,libs}/**/src/**/*.ts",
+      "!**/main.ts",
+      "!**/index.ts"
     ],
-    "coverageDirectory": "../coverage",
-    "testEnvironment": "node"
+    "coverageDirectory": "./coverage",
+    "testEnvironment": "node",
+    "roots": [
+      "<rootDir>/apps/",
+      "<rootDir>/libs/"
+    ],
+    "moduleNameMapper": {
+      "^@app/contratos(|/.*)$": "<rootDir>/libs/contratos/src/$1",
+      "^@app/shared(|/.*)$": "<rootDir>/libs/shared/src/$1"
+    }
   }
 }
