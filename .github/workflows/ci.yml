@@ -74,7 +74,7 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: '22', cache: npm }
       - run: npm ci
-      - name: Compilar con Nest
+      - name: Compilar todas las apps del monorepo
         run: npm run build
       - name: Subir build
         uses: actions/upload-artifact@v4
@@ -83,6 +83,7 @@ jobs:
           path: dist/
           retention-days: 7
 
+  # Imagen de la pasarela: healthcheck, usuario no root y prueba de humo.
   docker:
     needs: build
     runs-on: ubuntu-latest
@@ -96,7 +97,7 @@ jobs:
       - uses: docker/setup-buildx-action@v3
 
       # misma imagen que publica release.yml, pero solo se carga en el runner
-      - name: Construir la imagen
+      - name: Construir la imagen de la pasarela
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -138,3 +139,38 @@ jobs:
       - name: Parar el contenedor
         if: always()
         run: docker rm -f "$CONTAINER" || true
+
+  # Imágenes de los microservicios. Solo escuchan NATS, así que aquí se
+  # comprueba que la imagen se construye y que no se ejecuta como root. Que
+  # responden por NATS lo comprueba GET /salud/servicios con docker compose.
+  docker-microservicios:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [usuarios, estaciones-bici, prestamos, incidencias, estadisticas]
+    env:
+      IMAGE: ciclohub-${{ matrix.app }}:ci
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Construir la imagen
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          push: false
+          build-args: APP=${{ matrix.app }}
+          tags: ${{ env.IMAGE }}
+          cache-from: type=gha,scope=${{ matrix.app }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.app }}
+
+      - name: Comprobar que no se ejecuta como root
+        run: |
+          uid=$(docker run --rm --entrypoint id "$IMAGE" -u)
+          echo "UID dentro del contenedor: $uid"
+          [ "$uid" != "0" ] || { echo "::error::El contenedor se ejecuta como root"; exit 1; }

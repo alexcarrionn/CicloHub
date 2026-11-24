@@ -21,32 +21,36 @@ Las reglas detalladas están en `.claude/rules/`. Se cargan solas, y las de cód
 ```
 apps/
 ├─ gateway/                 # pasarela HTTP: REST + OpenAPI, GraphQL, autenticación
-└─ <microservicio>/         # un servicio por contexto (ver «Decisiones pendientes»)
-   └─ src/<contexto>/{dominio,aplicacion,infraestructura,api}/
+├─ usuarios/                # gestores, planes, códigos de activación, usuarios y operarios
+├─ estaciones-bici/         # estaciones, anclajes, bicicletas e histórico de estaciones
+├─ prestamos/               # reservas, alquileres, devoluciones y límites de uso
+├─ incidencias/             # incidencias de bicis, anclajes y estaciones llenas
+└─ estadisticas/            # historial, hábitos de uso y ocupación por franjas
+   (cada microservicio: src/<contexto>/{dominio,aplicacion,infraestructura,api}/)
 libs/
-├─ shared/                  # patrones DDD (Entity, ValueObject, AggregateRoot, Either…)
-└─ contratos/               # patrones de mensaje y eventos compartidos entre servicios
+├─ shared/                  # @app/shared: patrones DDD (Entity, ValueObject, AggregateRoot, Either…)
+└─ contratos/               # @app/contratos: servicios, opciones de NATS, patrones de mensaje y eventos
 request/                    # ficheros .rest para probar los endpoints a mano
 docs/                       # entregables e informes por asignatura (docs/gap, docs/ad…)
 ```
 
 La dependencia va siempre hacia dentro: `api → aplicacion → dominio ← infraestructura`. El dominio **no importa nada de NestJS ni de ninguna librería de persistencia**.
 
-> **Estado actual:** el repo es todavía un proyecto Nest estándar (`src/`). El paso a monorepo con `nest g app` está pendiente de que el equipo acuerde los microservicios.
+> **Estado actual:** el monorepo está creado. Cada microservicio arranca con NATS y solo responde a su mensaje de salud (`<servicio>.salud`). La pasarela expone `GET /salud` y `GET /salud/servicios`. Todavía no hay contextos de dominio, persistencia ni front.
 
 ## Comandos
 
 ```bash
 npm ci
-npm run start:dev [app]   # desarrollo; en monorepo indica la app: gateway, alquileres…
+npm run start:dev [-- app] # desarrollo; sin app arranca gateway (ej.: npm run start:dev -- prestamos)
 npm run lint              # ESLint (sin --fix, igual que la CI)
 npm run format:check      # Prettier (igual que la CI)
 npm test                  # unitarias (Jest)
 npm run test:coverage
 npm run test:e2e          # pruebas backend con Supertest
 npm run test:api          # prueba de humo contra la API arrancada
-npm run build
-docker compose up --build
+npm run build             # compila todas las apps (nest build --all)
+docker compose up --build # pasarela + 5 microservicios + NATS
 ```
 
 Antes de dar una tarea por terminada, ejecuta `npm run lint`, `npm run format:check`, `npm test` y `npm run test:e2e`, y comprueba que pasan.
@@ -55,12 +59,12 @@ Antes de dar una tarea por terminada, ejecuta `npm run lint`, `npm run format:ch
 
 Si una tarea depende de alguna de estas decisiones, **pregunta antes de seguir**:
 
-1. **Cómo se parten los microservicios** y qué contextos van en cada uno.
-2. **Qué bases de datos concretas** se usan (relacional y NoSQL) y para qué microservicio va cada una. Lo decide la asignatura de Arquitectura de Datos.
-3. **Qué microservicio lleva CQRS con Event Sourcing.**
-4. **Transporte de eventos.** En clase se ha visto NATS: úsalo salvo que el equipo diga otra cosa.
-5. **Proveedor de OAuth2** y dónde vive la autenticación.
-6. **Dónde va el front MVC del primer cuatrimestre**: una app del monorepo o un repo aparte.
+1. **Qué microservicio lleva CQRS con Event Sourcing:** estadísticas o préstamos, cuando se dé en clase.
+2. **Redis y una base columnar:** si se añaden y para qué servicio. Lo decide Arquitectura de Datos.
+3. **Proveedor de OAuth2** y librería de GraphQL.
+4. **Tecnología de las vistas MVC** del front (irá en `apps/web`).
+
+Ya decidido (ver el documento de tecnologías del proyecto): los microservicios de la estructura de arriba; **PostgreSQL con TypeORM** para usuarios, estaciones-bici y préstamos, y **MongoDB con Mongoose** para incidencias y estadísticas; **NATS** como transporte; el front MVC **dentro del monorepo**; y el despliegue en **AWS con ECS Fargate y Terraform**.
 
 ## Prioridad y plazos
 
